@@ -6,16 +6,19 @@ import PackageDescription
 let package = Package(
     name: "InfiniteMineSweeper",
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "InfiniteMineSweeper",
-            targets: ["InfiniteMineSweeper"]),
+            targets: ["InfiniteMineSweeper"]
+        ),
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "InfiniteMineSweeper"),
+            name: "InfiniteMineSweeper"
+        ),
+        .executableTarget(
+            name: "InfiniteMineSweeperExecutable",
+            dependencies: ["InfiniteMineSweeper"]
+        ),
         .testTarget(
             name: "InfiniteMineSweeperTests",
             dependencies: ["InfiniteMineSweeper"]

@@ -5,6 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "InfiniteMineSweeper",
+    platforms: [.iOS(.v18), .macOS(.v13)],
     products: [
         .library(
             name: "InfiniteMineSweeper",
@@ -13,11 +14,14 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "InfiniteMineSweeper"
+            name: "InfiniteMineSweeper",
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
         ),
         .executableTarget(
             name: "InfiniteMineSweeperExecutable",
-            dependencies: ["InfiniteMineSweeper"]
+            dependencies: ["InfiniteMineSweeper"]  
         ),
         .testTarget(
             name: "InfiniteMineSweeperTests",

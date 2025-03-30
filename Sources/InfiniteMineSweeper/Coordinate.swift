@@ -7,7 +7,8 @@
 
 import Foundation
 
-public struct Coordinate: Hashable {
+// TODO: Customize decoding/encoding to minimize disk usage.
+public struct Coordinate: Hashable, Codable, Sendable {
     public let x: Int
     public let y: Int
     

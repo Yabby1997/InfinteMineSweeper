@@ -23,8 +23,8 @@ actor GameBoard: NSObject {
     
     func getCell(for coordinate: Coordinate) async -> Cell? {
         guard let chunk = chunks.object(forKey: coordinate.chunkID as NSString) else {
-            let _ = await loadChunk(of: coordinate.chunkID)
-            return nil
+            let loadedChunk = await loadChunk(of: coordinate.chunkID)
+            return await loadedChunk.getCell(for: coordinate)
         }
         return await chunk.getCell(for: coordinate)
     }
@@ -36,6 +36,7 @@ actor GameBoard: NSObject {
             return
         }
         await chunk.setCell(cell, for: coordinate)
+        await saveChunk(chunk)
     }
     
     private func loadChunk(of id: String) async -> Chunk {
@@ -50,7 +51,7 @@ actor GameBoard: NSObject {
         }
     }
     
-    private func unloadChunk(_ chunk: Chunk) async {
+    private func saveChunk(_ chunk: Chunk) async {
         guard let sessionID else { return }
         await Serializer.shared.serialize(object: await chunk.snapshot, name: sessionID + chunk.id)
     }
@@ -59,7 +60,7 @@ actor GameBoard: NSObject {
 extension GameBoard: NSCacheDelegate {
     @preconcurrency nonisolated func cache(_ cache: NSCache<AnyObject, AnyObject>, willEvictObject obj: Any) {
         guard let chunk = obj as? Chunk else { return }
-        Task { await unloadChunk(chunk) }
+        Task { await saveChunk(chunk) }
     }
 }
 

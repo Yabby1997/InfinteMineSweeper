@@ -8,14 +8,17 @@
 import Foundation
 
 actor GameBoard: NSObject {
-    // TODO: Change to inject sessionID.
-    private let sessionID: String = UUID().uuidString
+    private var sessionID: String?
     private var chunks: NSCache<NSString, Chunk> = NSCache()
     
     override init() {
         super.init()
         chunks.countLimit = 1000
         chunks.delegate = self
+    }
+    
+    func setup(sessionID: String) {
+        self.sessionID = sessionID
     }
     
     func getCell(for coordinate: Coordinate) async -> Cell? {
@@ -36,7 +39,7 @@ actor GameBoard: NSObject {
     }
     
     private func loadChunk(of id: String) async -> Chunk {
-        if let snapshot: Chunk.Snapshot = await Serializer.shared.deserialize(name: sessionID + id) {
+        if let sessionID, let snapshot: Chunk.Snapshot = await Serializer.shared.deserialize(name: sessionID + id) {
             let chunk = Chunk(from: snapshot)
             chunks.setObject(chunk, forKey: id as NSString)
             return chunk
@@ -48,6 +51,7 @@ actor GameBoard: NSObject {
     }
     
     private func unloadChunk(_ chunk: Chunk) async {
+        guard let sessionID else { return }
         await Serializer.shared.serialize(object: await chunk.snapshot, name: sessionID + chunk.id)
     }
 }

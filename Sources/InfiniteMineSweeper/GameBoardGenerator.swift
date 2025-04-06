@@ -75,41 +75,4 @@ actor GameBoardGenerator {
                 }
         }
     }
-    
-    // TODO: Remove after game implementation. Only for debugging.
-    func draw() async {
-        for y in -30...30 {
-            var row: String = ""
-            for x in -30...30 {
-                row += await dataSource?.gameBoardGenerator(self, cellAtCoordinate: .init(x: x, y: y))?.debugSymbol ?? "."
-            }
-            print(row)
-        }
-        print("====================")
-    }
-}
-
-// TODO: Remove after game implementation. Only for debugging.
-public actor GameBoardGeneratorTest {
-    private let generator = GameBoardGenerator()
-    
-    public init() {}
-    
-    public func start() async {
-        while let line = readLine() {
-            let components = line.components(separatedBy: ", ")
-            guard let x = Int(components[0]), let y = Int(components[1]) else { continue }
-            await generator.openCell(at: .init(x: x, y: y))
-            await generator.draw()
-        }
-    }
-    
-    public func test() async {
-        for y in -64...64 {
-            for x in -64...64 {
-                await generator.openCell(at: .init(x: x, y: y))
-                await generator.draw()
-            }
-        }
-    }
 }

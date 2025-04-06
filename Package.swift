@@ -19,10 +19,6 @@ let package = Package(
                 .swiftLanguageMode(.v6)
             ]
         ),
-        .executableTarget(
-            name: "InfiniteMineSweeperExecutable",
-            dependencies: ["InfiniteMineSweeper"]  
-        ),
         .testTarget(
             name: "InfiniteMineSweeperTests",
             dependencies: ["InfiniteMineSweeper"]

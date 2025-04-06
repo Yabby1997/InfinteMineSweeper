@@ -7,22 +7,52 @@
 
 import Foundation
 
-struct GameSession: Codable {
+actor GameSession {
+    struct Snapshot: Codable {
+        let id: String
+        let date: Date
+        let isStarted: Bool
+        let isOver: Bool
+    }
+    
     let id: String
     let date: Date
-    let isStarted: Bool
+    var isStarted: Bool
+    var isOver: Bool
+    
+    init(snapshot: Snapshot) {
+        id = snapshot.id
+        date = snapshot.date
+        isStarted = snapshot.isStarted
+        isOver = snapshot.isOver
+    }
     
     init(
         id: String = UUID().uuidString,
         date: Date = .now,
-        isStarted: Bool = false
+        isStarted: Bool = false,
+        isOver: Bool = false
     ) {
         self.id = id
         self.date = date
         self.isStarted = isStarted
+        self.isOver = isOver
     }
     
-    func started() -> GameSession {
-        .init(isStarted: true)
+    func start() {
+        isStarted = true
+    }
+    
+    func gameOver() {
+        isOver = true
+    }
+    
+    func getSnapshot() -> Snapshot {
+        .init(
+            id: id,
+            date: date,
+            isStarted: isStarted,
+            isOver: isOver
+        )
     }
 }

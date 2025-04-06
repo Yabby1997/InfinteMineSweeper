@@ -11,24 +11,37 @@ actor GameSessionManager {
     private let userDefaults = UserDefaults.standard
     private var session: GameSession?
     var sessionID: String? { session?.id }
-    var isStarted: Bool { session?.isStarted ?? false }
-
-    func setup() {
-        session = startOrGetSession()
+    
+    func isSessionStarted() async -> Bool {
+        await session?.isStarted ?? false
     }
     
-    func start() {
+    func isSessionOver() async -> Bool {
+        await session?.isOver ?? false
+    }
+    
+    func setup() async {
+        session = await startOrGetSession()
+    }
+    
+    func sessionStart() async {
         guard let session else { return }
-        self.session = session.started()
-        setGameSession(session)
+        await session.start()
+        await setGameSession(session)
     }
     
-    private func startOrGetSession() -> GameSession {
-        if let existingSession = getGameSession() {
+    func sessionOver() async {
+        guard let session else { return }
+        await session.gameOver()
+        await setGameSession(session)
+    }
+    
+    private func startOrGetSession() async -> GameSession {
+        if let existingSession = getGameSession(), await existingSession.isOver == false {
             return existingSession
         } else {
             let newSession = GameSession(date: .now, isStarted: false)
-            setGameSession(newSession)
+            await setGameSession(newSession)
             return newSession
         }
     }
@@ -36,16 +49,16 @@ actor GameSessionManager {
     private func getGameSession() -> GameSession? {
         if let savedData = userDefaults.data(forKey: "gameSession") {
             let decoder = JSONDecoder()
-            if let session = try? decoder.decode(GameSession.self, from: savedData) {
-                return session
+            if let snapshot = try? decoder.decode(GameSession.Snapshot.self, from: savedData) {
+                return GameSession(snapshot: snapshot)
             }
         }
         return nil
     }
     
-    private func setGameSession(_ session: GameSession) {
+    private func setGameSession(_ session: GameSession) async {
         let encoder = JSONEncoder()
-        if let encoded = try? encoder.encode(session) {
+        if let encoded = try? encoder.encode(await session.getSnapshot()) {
             userDefaults.set(encoded, forKey: "gameSession")
         }
     }

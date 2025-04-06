@@ -7,17 +7,33 @@
 
 import Foundation
 
+protocol GameBoardGeneratorDelegate: Actor, AnyObject {
+    func gameBoardGenerator(_ generator: GameBoardGenerator, didGenerate cell: Cell, at coordinate: Coordinate) async
+    func gameBoardGeneratorDidStartGenerating(_ generator: GameBoardGenerator) async
+}
+
+protocol GameBoardGeneratorDataSource: Actor, AnyObject {
+    func gameBoardGeneratorIsStarted(_ generator: GameBoardGenerator) async -> Bool
+    func gameBoardGenerator(_ generator: GameBoardGenerator, cellAtCoordinate coordinate: Coordinate) async -> Cell?
+}
+
 actor GameBoardGenerator {
-    private var isBoardGenerationStarted = false
-    private(set) var board = GameBoard()
+    private weak var delegate: GameBoardGeneratorDelegate?
+    private weak var dataSource: GameBoardGeneratorDataSource?
+    
+    func setup(delegate: GameBoardGeneratorDelegate, dataSource: GameBoardGeneratorDataSource) {
+        self.delegate = delegate
+        self.dataSource = dataSource
+    }
     
     func openCell(at coordinate: Coordinate) async {
-        guard isBoardGenerationStarted else {
+        guard let delegate, let dataSource else { return }
+        guard await dataSource.gameBoardGeneratorIsStarted(self) else {
             for each in coordinate.cluster {
-                await board.setCell(.notDetermined, for: each)
+                await delegate.gameBoardGenerator(self, didGenerate: .notDetermined, at: each)
             }
             await determine(for: coordinate)
-            isBoardGenerationStarted = true
+            await delegate.gameBoardGeneratorDidStartGenerating(self)
             return
         }
         
@@ -27,25 +43,29 @@ actor GameBoardGenerator {
     
     // TODO: Improve probability logic.
     private func cell(for coordinate: Coordinate) async -> Cell {
-        if let cell = await board.getCell(for: coordinate) { return cell }
+        if let cell = await dataSource?.gameBoardGenerator(self, cellAtCoordinate: coordinate) {
+            return cell
+        }
         let newCell: Cell = (Int.random(in: 1...100) < 20) ? .mine : .notDetermined
-        await board.setCell(newCell, for: coordinate)
+        await delegate?.gameBoardGenerator(self, didGenerate: newCell, at: coordinate)
         return newCell
     }
     
     private func determine(for coordinate: Coordinate) async {
+        guard let delegate, let dataSource else { return }
         var coordinateQueue = Queue<Coordinate>()
         var visited: Set<Coordinate> = []
         coordinateQueue.enqueue(coordinate)
         visited.insert(coordinate)
         while let currentCoordinate = coordinateQueue.dequeue() {
-            guard let currentCell = await board.getCell(for: currentCoordinate), currentCell == .notDetermined else { continue }
+            guard let currentCell = await dataSource.gameBoardGenerator(self, cellAtCoordinate: currentCoordinate),
+                  currentCell == .notDetermined else { continue }
             var adjacentMines: Int = .zero
             for each in currentCoordinate.neighbors {
                 adjacentMines += await cell(for: each) == .mine ? 1 : .zero
             }
             guard let cell = Cell(from: adjacentMines) else { return }
-            await board.setCell(cell, for: currentCoordinate)
+            await delegate.gameBoardGenerator(self, didGenerate: cell, at: currentCoordinate)
             guard adjacentMines == 0 else { continue }
             currentCoordinate.neighbors
                 .filter { visited.contains($0) == false }
@@ -61,7 +81,7 @@ actor GameBoardGenerator {
         for y in -30...30 {
             var row: String = ""
             for x in -30...30 {
-                row += await board.getCell(for: .init(x: x, y: y))?.debugSymbol ?? "."
+                row += await dataSource?.gameBoardGenerator(self, cellAtCoordinate: .init(x: x, y: y))?.debugSymbol ?? "."
             }
             print(row)
         }
